@@ -4,25 +4,26 @@ Classification analysis of the [UCI Heart Disease dataset](https://archive.ics.u
 
 ## Dataset
 
-- **Source:** UCI Heart Disease dataset (`dataset/raw.csv`)
-- **Size:** 303 samples × 14 features
+- **Source:** UCI Heart Disease dataset (`dataset/raw.csv`) — Cleveland subset
+- **Size:** 303 samples × 14 features (76 total attributes in the full UCI dataset)
 - **Target:** `target` — 0 (no disease) / 1 (disease)
+- **Missing values:** None in this Cleveland subset; present in other UCI sub-databases (Hungary, Switzerland, VA Long Beach)
 
 | Feature | Type | Description |
 |---|---|---|
-| age | continuous | Age in years |
+| age | continuous | Age (years) |
 | sex | categorical | 0 = female, 1 = male |
-| cp | categorical | Chest pain type (0–3) |
-| trestbps | continuous | Resting blood pressure (mm Hg) |
+| cp | categorical | Chest pain type: 0 = typical angina, 1 = atypical angina, 2 = non-anginal pain, 3 = asymptomatic |
+| trestbps | continuous | Resting blood pressure at admission (mm Hg) |
 | chol | continuous | Serum cholesterol (mg/dl) |
-| fbs | categorical | Fasting blood sugar > 120 mg/dl |
-| restecg | categorical | Resting ECG results (0–2) |
-| thalach | continuous | Maximum heart rate achieved |
-| exang | categorical | Exercise-induced angina |
-| oldpeak | continuous | ST depression induced by exercise |
-| slope | categorical | Slope of peak exercise ST segment |
-| ca | categorical | Number of major vessels (0–3) |
-| thal | categorical | Thalassemia type (1–3) |
+| fbs | categorical | Fasting blood sugar: 0 = ≤120 mg/dl, 1 = >120 mg/dl |
+| restecg | categorical | Resting ECG: 0 = normal, 1 = ST-T wave abnormality, 2 = left ventricular hypertrophy (Estes' criteria) |
+| thalach | continuous | Maximum heart rate achieved (bpm) |
+| exang | categorical | Exercise-induced angina: 0 = no, 1 = yes |
+| oldpeak | continuous | ST depression induced by exercise relative to rest |
+| slope | categorical | Slope of peak exercise ST segment: 0 = upsloping, 1 = flat, 2 = downsloping |
+| ca | categorical | Number of major vessels colored by fluoroscopy (0–3) |
+| thal | categorical | Thalassemia: 1 = normal, 2 = fixed defect, 3 = reversible defect |
 
 ## Project Structure
 
