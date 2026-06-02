@@ -36,8 +36,14 @@ heartdisease/
 │   ├── processed_random_forest.csv
 │   ├── processed_decision_tree.csv
 │   └── processed_svm.csv
+├── img                                  # Plot evaluate result
+│   ├── 5_fold_CV.png
+│   ├── ROC.png
+│   ├── confusion.png
+│   └── metrics.png
 ├── EDA.ipynb                            # Exploratory data analysis
 ├── preprocess.py                        # Preprocessing pipeline
+├── classifier.ipynb                     # Train 5 Classifier + Plot evaluate result
 └── requirements.txt
 ```
 
