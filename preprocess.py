@@ -1,97 +1,61 @@
-import pandas as pd
 import numpy as np
-from sklearn.preprocessing import StandardScaler
-
-RAW_PATH = "dataset/raw.csv"
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.base import BaseEstimator, TransformerMixin, OneToOneFeatureMixin
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
 
 CONTINUOUS = ["age", "trestbps", "chol", "thalach", "oldpeak"]
 CATEGORICAL = ["sex", "cp", "fbs", "restecg", "exang", "slope", "ca", "thal"]
 TARGET = "target"
 
-def _cap_outliers_iqr(X, cols: list):
-    X = X.copy()
-    for col in cols:
-        Q1, Q3 = X[col].quantile([0.25, 0.75])
+class IQRCapper(OneToOneFeatureMixin, BaseEstimator, TransformerMixin):
+    """
+    Clip each column to [Q1 - factor*IQR, Q3 + factor*IQR].
+    """
+
+    def __init__(self, factor: float = 1.5):
+        self.factor = factor
+
+    def fit(self, X, y=None):
+        if hasattr(X, "columns"):
+            self.feature_names_in_ = np.asarray(X.columns, dtype=object)
+        X = np.asarray(X, dtype=float)
+        self.n_features_in_ = X.shape[1]
+        Q1, Q3 = np.nanpercentile(X, [25, 75], axis=0)
         IQR = Q3 - Q1
-        X[col] = X[col].clip(Q1 - 1.5 * IQR, Q3 + 1.5 * IQR)
-    return X
+        self.lower_ = Q1 - self.factor * IQR
+        self.upper_ = Q3 + self.factor * IQR
+        return self
+
+    def transform(self, X):
+        X = np.asarray(X, dtype=float)
+        return np.clip(X, self.lower_, self.upper_)
 
 
-def _scale(X, cols: list):
-    X = X.copy()
-    X[cols] = StandardScaler().fit_transform(X[cols])
-    return X
+def _numeric(cap: bool):
+    steps = [("cap", IQRCapper())] if cap else []
+    steps.append(("scale", StandardScaler()))
+    return Pipeline(steps)
 
 
-def _ohe(X, cols: list):
-    return pd.get_dummies(X, columns=cols, drop_first=False)
+def _column_transformer(cap: bool):
+    return ColumnTransformer([
+        ("num", _numeric(cap), CONTINUOUS),
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), CATEGORICAL),
+    ])
+
+#   KNN / SVM          : IQR cap + one-hot + scale
+#   LogisticRegression : one-hot + scale
+#   RandomForest / Tree: keep ordinal integer encodings, no scaling
+def build_preprocessor(model_name: str):
+    if model_name in ("knn", "svm"):
+        return _column_transformer(cap=True)
+    if model_name == "logistic_regression":
+        return _column_transformer(cap=False)
+    if model_name in ("random_forest", "decision_tree"):
+        return "passthrough"
+    raise ValueError(f"unknown model_name: {model_name!r}")
 
 
-def _split_rejoin(df, transform):
-    X = df.drop(TARGET, axis=1).copy()
-    y = df[TARGET].reset_index(drop=True)
-    X = transform(X)
-    return pd.concat([X.reset_index(drop=True), y], axis=1)
-
-
-# KNN
-# Distance-based: scale continuous, one-hot encode categorical, cap outliers.
-def preprocess_knn(df):
-    def transform(X):
-        X = _cap_outliers_iqr(X, CONTINUOUS)
-        X = _ohe(X, CATEGORICAL)
-        X = _scale(X, CONTINUOUS)
-        return X
-    return _split_rejoin(df, transform)
-
-
-# Logistic Regression 
-# Scale continuous, one-hot encode categorical.
-def preprocess_logistic_regression(df):
-    def transform(X):
-        X = _ohe(X, CATEGORICAL)
-        X = _scale(X, CONTINUOUS)
-        return X
-    return _split_rejoin(df, transform)
-
-
-# Random Forest 
-# skip numeric ordinal encoding
-def preprocess_random_forest(df):
-    return df.copy()
-
-
-# Decision Tree 
-# skip preprocessing
-def preprocess_decision_tree(df):
-    return df.copy()
-
-
-# SVM 
-# Kernel-based: very sensitive to feature scale and outliers.
-# Cap outliers, one-hot encode categorical, scale continuous features.
-def preprocess_svm(df):
-    def transform(X):
-        X = _cap_outliers_iqr(X, CONTINUOUS)
-        X = _ohe(X, CATEGORICAL)
-        X = _scale(X, CONTINUOUS)
-        return X
-    return _split_rejoin(df, transform)
-
-
-PREPROCESSORS = {
-    "knn": preprocess_knn,
-    "logistic_regression": preprocess_logistic_regression,
-    "random_forest": preprocess_random_forest,
-    "decision_tree": preprocess_decision_tree,
-    "svm": preprocess_svm,
-}
-
-if __name__ == "__main__":
-    df = pd.read_csv(RAW_PATH)
-    print(f"Raw data: {df.shape[0]} rows x {df.shape[1]} cols\n")
-
-    for name, fn in PREPROCESSORS.items():
-        out = fn(df)
-        path = f"dataset/processed_{name}.csv"
-        out.to_csv(path, index=False)
+def build_pipeline(model_name: str, clf):
+    return Pipeline([("prep", build_preprocessor(model_name)), ("clf", clf)])
