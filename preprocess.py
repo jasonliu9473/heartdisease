@@ -44,8 +44,8 @@ def _column_transformer(cap: bool):
         ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), CATEGORICAL),
     ])
 
-#   KNN / SVM          : IQR cap + one-hot + scale
-#   LogisticRegression : one-hot + scale
+#   KNN / SVM          : one-hot + scale
+#   LogisticRegression : one-hot + IQR cap + scale
 #   RandomForest / Tree: keep ordinal integer encodings, no scaling
 def build_preprocessor(model_name: str):
     if model_name in ("knn", "svm"):
